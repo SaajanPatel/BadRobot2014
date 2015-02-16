@@ -8,12 +8,21 @@
 package com.badrobot;
 
 
+import com.badrobot.commands.CheckHotMoveAndShoot;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.command.Command;
 import edu.wpi.first.wpilibj.command.Scheduler;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import com.badrobot.commands.CommandBase;
-import com.badrobot.commands.ExampleCommand;
+import com.badrobot.commands.DriveStraightForward;
+import com.badrobot.commands.RunLights;
+import com.badrobot.commands.autonomouscommandgroups.DebugImage;
+import com.badrobot.commands.autonomouscommandgroups.DriveForwardAndShoot;
+import com.badrobot.commands.autonomouscommandgroups.DriveTooFarFixAndShoot;
+import com.badrobot.subsystems.interfaces.ILights;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -25,22 +34,46 @@ import com.badrobot.commands.ExampleCommand;
 public class RobotMain extends IterativeRobot {
 
     Command autonomousCommand;
+    SendableChooser autoChooser;
+    public static int ALLIANCE_COLOR = 0;
 
     /**
      * This function is run when the robot is first started up and should be
      * used for any initialization code.
      */
     public void robotInit() {
-        // instantiate the command used for the autonomous period
-        autonomousCommand = new ExampleCommand();
-
         // Initialize all subsystems
         CommandBase.init();
+        
+        SmartDashboard.putNumber("AutonomousDriveStraightTime", 2.0);
+        SmartDashboard.putNumber("Distance to wall", 64);
+        
+        //Add autonomous commandgroups to the smart dashboard chooser
+        autoChooser = new SendableChooser();
+        autoChooser.addObject("Drive straight forward with distance and shoot", new DriveForwardAndShoot());
+        autoChooser.addObject("Drive straight forward with time and shoot", new DriveForwardAndShoot(SmartDashboard.getNumber("AutonomousDriveStraightTime")));
+        //autoChooser.addObject("Check hot drive foward and shoot", new CheckHotMoveAndShoot());
+        //autoChooser.addObject("Drive Foward", new DriveStraightForward(SmartDashboard.getNumber("AutonomousDriveStraightTime"), false));
+        //autoChooser.addObject("Drive too far low speed", new DriveTooFarFixAndShoot(false));
+        //autoChooser.addObject("Drive too far high speed", new DriveTooFarFixAndShoot(true));
+        //autoChooser.addObject("DEBUG: Drive Straight THEN articulate gatherer", new DebugImage());
+        
+        SmartDashboard.putData("Autonomous Mode Chooser", autoChooser);
+        
+//        ALLIANCE_COLOR = (DriverStation.getInstance().getAlliance().value 
+//                == DriverStation.Alliance.kBlue_val) ? ILights.kBlue : ILights.kRed;
+//        if (CommandBase.lights != null) {
+//            Scheduler.getInstance().add(new RunLights(ALLIANCE_COLOR));
+//        }
     }
 
+    /**
+     * Called when autonomous is first initiated
+     */
     public void autonomousInit() {
-        // schedule the autonomous command (example)
-        autonomousCommand.start();
+        //select the selected autonomous commandgroup and add to scheduler
+        autonomousCommand = (Command) autoChooser.getSelected();
+        Scheduler.getInstance().add(autonomousCommand);
     }
 
     /**
@@ -50,16 +83,16 @@ public class RobotMain extends IterativeRobot {
         Scheduler.getInstance().run();
     }
 
+    /**
+     * Called when autonomous is first initiated
+     */
     public void teleopInit() {
-	// This makes sure that the autonomous stops running when
-        // teleop starts running. If you want the autonomous to 
-        // continue until interrupted by another command, remove
-        // this line or comment it out.
-        autonomousCommand.cancel();
+	//cancels autonomous mode when teleop begins
+        //autonomousCommand.cancel();
     }
 
     /**
-     * This function is called periodically during operator control
+     * This function is called periodically during operator control (teleop mode)
      */
     public void teleopPeriodic() {
         Scheduler.getInstance().run();

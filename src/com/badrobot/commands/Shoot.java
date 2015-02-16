@@ -5,8 +5,14 @@
 package com.badrobot.commands;
 
 import com.badrobot.OI;
+import com.badrobot.RobotMain;
 import com.badrobot.RobotMap;
+import com.badrobot.XboxController;
+import com.badrobot.subsystems.interfaces.ILights;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.Utility;
 import edu.wpi.first.wpilibj.command.Subsystem;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
  *
@@ -14,7 +20,10 @@ import edu.wpi.first.wpilibj.command.Subsystem;
  */
 public class Shoot extends BadCommand
 {
-    private static double COCK_BACK_SPEED = 0.5;
+    private static double COCK_BACK_SPEED = 1.0;
+    //private Timer timer;
+    
+    long startTime;
 
     public Shoot()
     {
@@ -36,45 +45,17 @@ public class Shoot extends BadCommand
         //Used when two controllers will be used
         if (!OI.isSingleControllerMode())
         {
-            if (OI.secondaryController.isAButtonPressed())
-            {
-                shooter.cockBack(COCK_BACK_SPEED);
-            }
-            else
-            {
-                shooter.cockBack(0);
-            }
-
-            if (OI.secondaryController.isBButtonPressed())
-            {
-                shooter.disengageWinch();
-            }
-            else
-            {
-                shooter.engageWinch();
-            }
+            //Cock shooter with A, release with B
+            controlWinch(OI.primaryController, OI.secondaryController);
         }
         //Used when one controller will be used
         else
         {
-            if (OI.primaryController.isAButtonPressed())
-            {
-                shooter.cockBack(COCK_BACK_SPEED);
-            }
-            else
-            {
-                shooter.cockBack(0);
-            }
-
-            if (OI.primaryController.isBButtonPressed())
-            {
-                shooter.disengageWinch();
-            }
-            else
-            {
-                shooter.engageWinch();
-            }
+            //Cock shooter with A, release with B
+            controlWinch(OI.primaryController);
         }
+        
+        SmartDashboard.putBoolean("Shooter Cocked Back", shooter.isCockedBack());
     }
 
     protected boolean isFinished() 
@@ -92,4 +73,49 @@ public class Shoot extends BadCommand
         
     }
     
+    private void controlWinch(XboxController controller1, XboxController controller2)
+    {
+        SmartDashboard.putBoolean("Primary Fire", controller1.isBButtonPressed());
+        SmartDashboard.putBoolean("Secondary Fire", controller2.isBButtonPressed());
+        
+        if (controller2.isAButtonPressed())
+        {
+            shooter.cockBack(COCK_BACK_SPEED);
+        }
+        else
+        {
+            shooter.cockBack(0);
+        }
+        //Allows firing if both B buttons are pressed or if the select button is pressed on the second controller
+        if ((controller1.isBButtonPressed() && controller2.isBButtonPressed()) || controller2.isSelectButtonPressed())
+        {
+            startTime = Utility.getFPGATime();
+            shooter.disengageWinch();
+        }
+        else if ((Utility.getFPGATime() - startTime) > 0.5*1000000)
+        {
+            shooter.engageWinch();
+        }
+    }
+    private void controlWinch(XboxController controller2)
+    {
+        if (controller2.isAButtonPressed())
+        {
+            shooter.cockBack(COCK_BACK_SPEED);
+        }
+        else
+        {
+            shooter.cockBack(0);
+        }
+        
+        if (controller2.isBButtonPressed())
+        {
+            startTime = Utility.getFPGATime();
+            shooter.disengageWinch();
+        }
+        else if ((Utility.getFPGATime() - startTime) > 0.5*1000000)
+        {
+            shooter.engageWinch();
+        }
+    }
 }
